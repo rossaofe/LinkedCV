@@ -73,7 +73,9 @@ export async function POST(req: NextRequest) {
       throw new Error("Unexpected response type from Claude");
     }
 
-    const parsed = JSON.parse(content.text);
+    // Strip markdown code fences if present (e.g. ```json ... ```)
+    const raw = content.text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    const parsed = JSON.parse(raw);
     return NextResponse.json({ data: parsed });
   } catch (err) {
     const message = err instanceof SyntaxError
