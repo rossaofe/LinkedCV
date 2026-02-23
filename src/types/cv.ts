@@ -24,6 +24,7 @@ export interface CVData {
   headline: string;
   location?: string;
   about?: string;
+  photoUrl?: string;
   contact?: {
     email?: string;
     phone?: string;

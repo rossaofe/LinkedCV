@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
     const cv: CVData = {
       name: [p.first_name, p.last_name].filter(Boolean).join(" ") || "Unknown",
       headline: p.headline || p.occupation || "",
+      photoUrl: p.profile_pic_url || undefined,
       location: [p.city, p.state, p.country_full_name].filter(Boolean).join(", ") || undefined,
       about: p.summary || undefined,
       contact: {
