@@ -311,9 +311,37 @@ function CVPage({ cv, onReset }: { cv: CVData; onReset: () => void }) {
                 </div>
               </div>
 
+              {/* ── Snapshot row: current role · education · personal ── */}
+              {(cv.experience?.[0] || cv.education?.[0] || cv.personalInfo) && (
+                <div data-animate data-delay="300" className="grid sm:grid-cols-3 gap-4 mb-10">
+                  {cv.experience?.[0] && (
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+                      <p className="text-xs font-bold text-zinc-600 uppercase tracking-widest mb-2">Currently</p>
+                      <p className="text-sm font-bold text-white leading-snug">{cv.experience[0].title}</p>
+                      <p className="text-xs text-indigo-400 font-semibold mt-0.5">{cv.experience[0].company}</p>
+                    </div>
+                  )}
+                  {cv.education?.[0] && (
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+                      <p className="text-xs font-bold text-zinc-600 uppercase tracking-widest mb-2">Education</p>
+                      <p className="text-sm font-bold text-white leading-snug">
+                        {cv.education[0].degree}{cv.education[0].field ? ` in ${cv.education[0].field}` : ""}
+                      </p>
+                      <p className="text-xs text-zinc-400 font-semibold mt-0.5">{cv.education[0].school}</p>
+                    </div>
+                  )}
+                  {cv.personalInfo && (
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+                      <p className="text-xs font-bold text-zinc-600 uppercase tracking-widest mb-2">Beyond work</p>
+                      <p className="text-sm text-zinc-300 font-semibold leading-relaxed">{cv.personalInfo}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* ── Focus areas grid ── */}
               {highlights.length > 0 && (
-                <div data-animate data-delay="300">
+                <div data-animate data-delay="400">
                   <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Focus areas</p>
                   <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {highlights.map((h, i) => (
@@ -516,6 +544,8 @@ export default function Home() {
   const [text, setText] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [photoPreview, setPhotoPreview] = useState<string>("");
+  const [personalInfo, setPersonalInfo] = useState("");
+  const [showPersonal, setShowPersonal] = useState(false);
   const [cv, setCv] = useState<CVData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -570,6 +600,7 @@ export default function Home() {
       const data: CVData = {
         ...json.data,
         photoUrl: json.data.photoUrl || (photoUrl.trim() || undefined),
+        personalInfo: personalInfo.trim() || undefined,
       };
       setCv(data);
       setState("result");
@@ -585,6 +616,8 @@ export default function Home() {
     setText("");
     setPhotoUrl("");
     setPhotoPreview("");
+    setPersonalInfo("");
+    setShowPersonal(false);
     setCv(null);
     setError(null);
   }
@@ -697,6 +730,28 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* Personal details — expandable */}
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={() => setShowPersonal(!showPersonal)}
+              className="flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-300 font-bold transition-colors"
+            >
+              <svg className={`w-3.5 h-3.5 transition-transform ${showPersonal ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+              </svg>
+              Add personal details <span className="text-zinc-700">(hobbies, sports, interests — optional)</span>
+            </button>
+            {showPersonal && (
+              <textarea
+                className="mt-3 w-full bg-black border border-zinc-700 focus:border-indigo-500 rounded-2xl p-4 text-sm text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 resize-none h-24 font-medium transition-colors"
+                placeholder="e.g. I run marathons, coach youth football, and am learning to cook Italian food…"
+                value={personalInfo}
+                onChange={(e) => setPersonalInfo(e.target.value)}
+              />
+            )}
+          </div>
 
           {error && (
             <p className="mt-4 text-sm text-red-400 bg-red-950/40 border border-red-800/50 rounded-xl px-4 py-3 font-semibold">

@@ -35,4 +35,5 @@ export interface CVData {
   education: Education[];
   skills: string[];
   certifications?: Certification[];
+  personalInfo?: string;
 }
