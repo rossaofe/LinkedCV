@@ -29,8 +29,74 @@ body {
   .no-print {
     display: none !important;
   }
-
   body {
     background: white !important;
   }
 }
+
+/* ── Scroll-triggered animations ── */
+[data-animate] {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1),
+              transform 0.7s cubic-bezier(0.4,0,0.2,1);
+}
+[data-animate].in-view {
+  opacity: 1;
+  transform: none;
+}
+[data-delay="100"] { transition-delay: 100ms; }
+[data-delay="200"] { transition-delay: 200ms; }
+[data-delay="300"] { transition-delay: 300ms; }
+[data-delay="400"] { transition-delay: 400ms; }
+[data-delay="500"] { transition-delay: 500ms; }
+[data-delay="600"] { transition-delay: 600ms; }
+[data-delay="700"] { transition-delay: 700ms; }
+
+/* ── Hero gradient ── */
+.hero-gradient {
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #0c4a6e, #1a2744);
+  background-size: 400% 400%;
+  animation: gradientShift 12s ease infinite;
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Floating orbs ── */
+@keyframes float1 {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  40%       { transform: translate(40px,-40px) scale(1.08); }
+  70%       { transform: translate(-20px,20px) scale(0.95); }
+}
+@keyframes float2 {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  35%       { transform: translate(-35px,25px) scale(0.93); }
+  70%       { transform: translate(25px,-30px) scale(1.06); }
+}
+.orb-1 { animation: float1 9s ease-in-out infinite; }
+.orb-2 { animation: float2 12s ease-in-out infinite; }
+
+/* ── Bouncing scroll indicator ── */
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50%       { transform: translateY(10px); opacity: 0.5; }
+}
+.bounce-down { animation: bounceDown 1.8s ease-in-out infinite; }
+
+/* ── Typewriter cursor blink ── */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.cursor { animation: blink 1s step-end infinite; }
+
+/* ── Skill pill hover ── */
+.skill-pill { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.skill-pill:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(59,130,246,0.25); }
+
+/* ── Timeline line grow ── */
+.timeline-line {
+  height: 0;
+  transition: height 1.2s cubic-bezier(0.4,0,0.2,1);
+}
+.timeline-line.in-view { height: 100%; }
