@@ -218,38 +218,128 @@ function CVPage({ cv, onReset }: { cv: CVData; onReset: () => void }) {
       {cv.about && (() => {
         const { intro, highlights, closing } = parseAbout(cv.about!);
         return (
-          <section id="about" className="py-32 px-6 bg-zinc-950">
-            <div className="max-w-4xl mx-auto">
-              <span data-animate className="inline-block text-indigo-400 text-sm font-bold uppercase tracking-widest mb-4">About</span>
-              <h2 data-animate data-delay="100" className="text-4xl md:text-5xl font-black text-white mb-10 leading-tight">
-                Who I am.
-              </h2>
+          <section id="about" className="py-24 px-6 bg-zinc-950">
+            <div className="max-w-5xl mx-auto">
 
-              {/* Intro paragraph */}
-              {intro && (
-                <p data-animate data-delay="200" className="text-lg text-zinc-300 leading-relaxed font-medium mb-10">
-                  {intro}
-                </p>
-              )}
+              {/* ── Two-column: narrative + quick facts ── */}
+              <div className="grid md:grid-cols-3 gap-10 mb-14">
 
-              {/* Highlight cards */}
+                {/* Left — narrative (2 cols) */}
+                <div className="md:col-span-2">
+                  <span data-animate className="inline-block text-indigo-400 text-xs font-bold uppercase tracking-widest mb-3">
+                    About
+                  </span>
+                  <h2 data-animate data-delay="100" className="text-4xl md:text-5xl font-semibold text-white tracking-tight mb-6 leading-tight">
+                    Who I am.
+                  </h2>
+                  {intro && (
+                    <p data-animate data-delay="200" className="text-lg text-zinc-300 leading-relaxed max-w-2xl mb-5">
+                      {intro}
+                    </p>
+                  )}
+                  {closing && (
+                    <p data-animate data-delay="300" className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
+                      {closing}
+                    </p>
+                  )}
+                </div>
+
+                {/* Right — quick facts card */}
+                <div data-animate data-delay="200">
+                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 space-y-4 md:sticky md:top-24">
+                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 pb-1 border-b border-zinc-800">
+                      Quick facts
+                    </p>
+
+                    {cv.location && (
+                      <div className="flex items-start gap-3">
+                        <svg className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <div>
+                          <p className="text-xs text-zinc-600 font-medium">Location</p>
+                          <p className="text-sm text-zinc-200 font-semibold">{cv.location}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {cv.headline && (
+                      <div className="flex items-start gap-3">
+                        <svg className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        <div>
+                          <p className="text-xs text-zinc-600 font-medium">Role</p>
+                          <p className="text-sm text-zinc-200 font-semibold leading-snug">{cv.headline}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {cv.contact?.email && (
+                      <div className="flex items-start gap-3">
+                        <svg className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        <div>
+                          <p className="text-xs text-zinc-600 font-medium">Email</p>
+                          <a href={`mailto:${cv.contact.email}`} className="text-sm text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
+                            {cv.contact.email}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {cv.contact?.linkedin && (
+                      <div className="flex items-start gap-3">
+                        <svg className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                        </svg>
+                        <div>
+                          <p className="text-xs text-zinc-600 font-medium">LinkedIn</p>
+                          <a
+                            href={cv.contact.linkedin.startsWith("http") ? cv.contact.linkedin : `https://linkedin.com/in/${cv.contact.linkedin}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="text-sm text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+                          >
+                            View profile →
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Focus areas grid ── */}
               {highlights.length > 0 && (
-                <div data-animate data-delay="300" className="grid sm:grid-cols-2 gap-3 mb-10">
-                  {highlights.map((h, i) => (
-                    <div key={i} className="flex gap-3 items-start bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
-                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2.5 shrink-0" />
-                      <p className="text-zinc-300 font-semibold text-sm leading-relaxed">{h}</p>
-                    </div>
-                  ))}
+                <div data-animate data-delay="300">
+                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Focus areas</p>
+                  <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {highlights.map((h, i) => (
+                      <div key={i} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 transition-colors p-4">
+                        <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center mb-3">
+                          <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                          </svg>
+                        </div>
+                        <p className="text-sm text-zinc-300 font-semibold leading-relaxed">{h}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Closing statement */}
-              {closing && (
-                <p data-animate data-delay="400" className="text-zinc-500 font-semibold leading-relaxed border-l-2 border-indigo-500/40 pl-4 italic">
-                  {closing}
-                </p>
+              {/* ── CTA ── */}
+              {cv.contact?.email && (
+                <div data-animate data-delay="400" className="mt-12 pt-8 border-t border-zinc-800/60 flex flex-wrap items-center justify-between gap-4">
+                  <p className="text-sm text-zinc-500 font-semibold">Open to connecting — always happy to have a conversation.</p>
+                  <a href={`mailto:${cv.contact.email}`} className="text-sm text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
+                    Get in touch →
+                  </a>
+                </div>
               )}
+
             </div>
           </section>
         );
