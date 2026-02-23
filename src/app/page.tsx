@@ -363,8 +363,34 @@ export default function Home() {
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [photoPreview, setPhotoPreview] = useState<string>("");
   const [cv, setCv] = useState<CVData | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Listen for image pastes anywhere on the page (idle state only)
+  useEffect(() => {
+    if (state !== "idle") return;
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (!file) continue;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const dataUrl = ev.target?.result as string;
+            setPhotoPreview(dataUrl);
+            setPhotoUrl(dataUrl);
+          };
+          reader.readAsDataURL(file);
+          break;
+        }
+      }
+    };
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [state]);
 
   async function handleGenerate() {
     setState("loading");
@@ -406,6 +432,7 @@ export default function Home() {
     setUrl("");
     setText("");
     setPhotoUrl("");
+    setPhotoPreview("");
     setCv(null);
     setError(null);
   }
@@ -488,14 +515,33 @@ export default function Home() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-zinc-300 mb-2">
-                  Profile photo URL <span className="text-zinc-600 font-semibold">(optional)</span>
+                  Profile photo <span className="text-zinc-600 font-semibold">(optional)</span>
                 </label>
-                <input type="url"
-                  className="w-full bg-black border border-zinc-700 focus:border-indigo-500 rounded-2xl px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-sm font-semibold transition-colors"
-                  placeholder="https://example.com/your-photo.jpg"
-                  value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
-                />
+                {photoPreview ? (
+                  <div className="flex items-center gap-4 bg-black border border-zinc-700 rounded-2xl p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photoPreview} alt="Preview" className="w-14 h-14 rounded-full object-cover ring-2 ring-indigo-500/40" />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-white">Photo added ✓</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">Paste a new image to replace it</p>
+                    </div>
+                    <button
+                      onClick={() => { setPhotoPreview(""); setPhotoUrl(""); }}
+                      className="text-zinc-600 hover:text-red-400 transition-colors text-xs font-bold px-2 py-1 rounded-lg hover:bg-red-950/30"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-3 bg-black border border-dashed border-zinc-700 hover:border-indigo-500/50 rounded-2xl px-4 py-5 text-zinc-500 transition-colors cursor-default">
+                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span className="text-sm font-semibold">
+                      Copy your photo then press <kbd className="bg-zinc-800 text-zinc-300 rounded px-1.5 py-0.5 font-mono text-xs">Ctrl+V</kbd> anywhere
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
