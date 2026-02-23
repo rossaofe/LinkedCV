@@ -4,6 +4,42 @@ import { useState, useEffect } from "react";
 import type { CVData } from "@/types/cv";
 
 /* ─────────────────────────────────────────────
+   Parse raw LinkedIn "about" blob into parts
+───────────────────────────────────────────── */
+function parseAbout(text: string): { intro: string; highlights: string[]; closing: string } {
+  const hasBullets = /[•·]/.test(text);
+
+  if (!hasBullets) {
+    // No bullets — split into paragraphs by double-newline or long sentences
+    const paras = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+    const intro = paras.slice(0, -1).join("\n\n") || paras[0] || text;
+    const closing = paras.length > 1 ? paras[paras.length - 1] : "";
+    return { intro, highlights: [], closing };
+  }
+
+  const firstBullet = text.indexOf("•") !== -1 ? text.indexOf("•") : text.indexOf("·");
+  const intro = text.slice(0, firstBullet).trim();
+  const rest = text.slice(firstBullet);
+
+  // Each bullet is the text between one bullet char and the next
+  const bulletMatches = rest.match(/[•·][^•·]+/g) ?? [];
+  const bullets = bulletMatches.map((b) => b.replace(/^[•·]\s*/, "").trim()).filter(Boolean);
+
+  // If the last "bullet" is long with multiple sentences it's probably a closing paragraph
+  let highlights = bullets;
+  let closing = "";
+  if (bullets.length > 0) {
+    const last = bullets[bullets.length - 1];
+    if ((last.match(/\.\s/g) ?? []).length >= 2 || last.length > 150) {
+      highlights = bullets.slice(0, -1);
+      closing = last;
+    }
+  }
+
+  return { intro, highlights, closing };
+}
+
+/* ─────────────────────────────────────────────
    Avatar — shows photo or initials fallback
 ───────────────────────────────────────────── */
 function Avatar({ photoUrl, name, size = "lg" }: { photoUrl?: string; name: string; size?: "sm" | "lg" }) {
@@ -179,19 +215,45 @@ function CVPage({ cv, onReset }: { cv: CVData; onReset: () => void }) {
       </section>
 
       {/* ── About ── */}
-      {cv.about && (
-        <section id="about" className="py-32 px-6 bg-zinc-950">
-          <div className="max-w-4xl mx-auto">
-            <span data-animate className="inline-block text-indigo-400 text-sm font-bold uppercase tracking-widest mb-4">About Me</span>
-            <h2 data-animate data-delay="100" className="text-4xl md:text-5xl font-black text-white mb-10 leading-tight">
-              A little about <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">who I am.</span>
-            </h2>
-            <p data-animate data-delay="200" className="text-xl text-zinc-300 leading-relaxed font-medium">
-              {cv.about}
-            </p>
-          </div>
-        </section>
-      )}
+      {cv.about && (() => {
+        const { intro, highlights, closing } = parseAbout(cv.about!);
+        return (
+          <section id="about" className="py-32 px-6 bg-zinc-950">
+            <div className="max-w-4xl mx-auto">
+              <span data-animate className="inline-block text-indigo-400 text-sm font-bold uppercase tracking-widest mb-4">About</span>
+              <h2 data-animate data-delay="100" className="text-4xl md:text-5xl font-black text-white mb-10 leading-tight">
+                Who I am.
+              </h2>
+
+              {/* Intro paragraph */}
+              {intro && (
+                <p data-animate data-delay="200" className="text-lg text-zinc-300 leading-relaxed font-medium mb-10">
+                  {intro}
+                </p>
+              )}
+
+              {/* Highlight cards */}
+              {highlights.length > 0 && (
+                <div data-animate data-delay="300" className="grid sm:grid-cols-2 gap-3 mb-10">
+                  {highlights.map((h, i) => (
+                    <div key={i} className="flex gap-3 items-start bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2.5 shrink-0" />
+                      <p className="text-zinc-300 font-semibold text-sm leading-relaxed">{h}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Closing statement */}
+              {closing && (
+                <p data-animate data-delay="400" className="text-zinc-500 font-semibold leading-relaxed border-l-2 border-indigo-500/40 pl-4 italic">
+                  {closing}
+                </p>
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── Experience ── */}
       {cv.experience?.length > 0 && (
