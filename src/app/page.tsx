@@ -40,6 +40,140 @@ function parseAbout(text: string): { intro: string; highlights: string[]; closin
 }
 
 /* ─────────────────────────────────────────────
+   Derive trait buzzwords from CV data
+───────────────────────────────────────────── */
+function deriveTraits(cv: CVData): string[] {
+  const traits: string[] = [];
+
+  const allText = [
+    cv.about ?? "",
+    cv.headline ?? "",
+    ...(cv.experience ?? []).flatMap(e => [e.title ?? "", e.description ?? ""]),
+    cv.personalInfo ?? "",
+  ].join(" ").toLowerCase();
+
+  const titles = (cv.experience ?? []).map(e => (e.title ?? "").toLowerCase());
+
+  if (titles.some(t => /\b(lead|manager|head of|director|vp |chief|president|senior)\b/.test(t)))
+    traits.push("Natural Leader");
+  if (titles.some(t => /\b(strateg|head of|director|vp |chief|principal)\b/.test(t)) ||
+    /\b(strateg|vision|roadmap|executive)\b/.test(allText))
+    traits.push("Strategic Thinker");
+  if (/\b(\d+%|\d+x|revenue|growth|delivered|impact|results|targets|exceeded)\b/.test(allText))
+    traits.push("Results-Driven");
+  if (/\b(team|collaborat|cross.functional|stakeholder|partner)\b/.test(allText))
+    traits.push("Team Player");
+  if (/\b(communicat|present|client|customer|relations|stakeholder)\b/.test(allText))
+    traits.push("Strong Communicator");
+  if ((cv.skills ?? []).length >= 6 || /\b(engineer|developer|architect|software|technical)\b/.test(allText))
+    traits.push("Technically Fluent");
+  if (/\b(founder|co.founder|entrepreneur|startup|self.employ)\b/.test(allText))
+    traits.push("Entrepreneurial");
+  if (/\b(data|analytic|insight|research|metrics|kpi|dashboard)\b/.test(allText))
+    traits.push("Data-Driven");
+  if ((cv.certifications ?? []).length >= 1 || /\b(certif|upskill|course)\b/.test(allText))
+    traits.push("Continuous Learner");
+  if ((cv.experience ?? []).length >= 4 || /\b(adapt|resilien|pivot|transiti|versatil)\b/.test(allText))
+    traits.push("Resilient");
+  if (/\b(passion|driven|motivat|commit|dedic|enthusias|ambiti)\b/.test(allText))
+    traits.push("Driven");
+  if (/\b(marathon|sport|run|football|cricket|gym|fitness|athlet|swim|cycl|hik|climb|compet)\b/.test(allText))
+    traits.push("High Performer");
+  if (/\b(coach|mentor|teach|train|guide|volunteer)\b/.test(allText))
+    traits.push("Mentor & Coach");
+  if (/\b(creativ|design|brand|market|storytell|content|innovat)\b/.test(allText))
+    traits.push("Creative");
+  if (/\b(global|international|multinational|cross.border|worldwide)\b/.test(allText))
+    traits.push("Global Mindset");
+  if (/\b(problem.solv|solution|complex|troubleshoot|optimi)\b/.test(allText))
+    traits.push("Problem Solver");
+
+  // Ensure at least a few traits
+  if (!traits.includes("Driven")) traits.push("Driven");
+  if (traits.length < 3 && !traits.includes("Resilient")) traits.push("Resilient");
+  if (traits.length < 4 && !traits.includes("Team Player")) traits.push("Team Player");
+
+  return [...new Set(traits)].slice(0, 8);
+}
+
+/* ─────────────────────────────────────────────
+   Extract key stats/figures from a job description
+───────────────────────────────────────────── */
+function extractStats(desc: string): { value: string; label: string }[] {
+  const results: { value: string; label: string }[] = [];
+  const seen = new Set<string>();
+
+  function add(value: string, label: string) {
+    if (!seen.has(value) && results.length < 4) { seen.add(value); results.push({ value, label }); }
+  }
+
+  // Currency with M/K/B suffix — highest impact so check first
+  for (const m of desc.matchAll(/([£$€])(\d+(?:\.\d+)?)([MKBmkb])\b/g)) {
+    const ctx = (desc.slice(Math.max(0, m.index! - 35), m.index!) + desc.slice(m.index! + m[0].length, m.index! + m[0].length + 35)).toLowerCase();
+    const label = /sav/.test(ctx) ? "Savings" : /revenue|sales/.test(ctx) ? "Revenue" : /fund/.test(ctx) ? "Funding" : /contract|deal/.test(ctx) ? "Contracts" : /budget/.test(ctx) ? "Budget" : "Value";
+    add(`${m[1]}${m[2]}${m[3].toUpperCase()}`, label);
+  }
+
+  // Percentages with context
+  for (const m of desc.matchAll(/(\d+(?:\.\d+)?)%/g)) {
+    const ctx = (desc.slice(Math.max(0, m.index! - 45), m.index!) + desc.slice(m.index! + m[0].length, m.index! + m[0].length + 35)).toLowerCase();
+    const label = /revenue|sales|grow/.test(ctx) ? "Revenue Growth" : /cost|spend|budget/.test(ctx) ? "Cost Reduction" : /efficien/.test(ctx) ? "Efficiency Gain" : /retention|churn/.test(ctx) ? "Retention" : /conversion/.test(ctx) ? "Conversion" : /reduc|decreas|cut/.test(ctx) ? "Reduction" : "Improvement";
+    add(`${m[1]}%`, label);
+  }
+
+  // Team size
+  const teamM = desc.match(/(?:lead|led|manag|oversee|oversaw|supervis)[^.]{0,25}?(\d{1,3})\s*(?:people|person|staff|engineer|dev|member|report|direct|head)/i) || desc.match(/team of (\d{1,3})/i);
+  if (teamM) add(teamM[1], "Team Size");
+
+  // Clients/users
+  const clientM = desc.match(/(\d+)\s*\+?\s*(?:client|customer|user|account)\b/i);
+  if (clientM) add(`${clientM[1]}+`, "Clients");
+
+  // Projects/products
+  const projM = desc.match(/(\d+)\s*\+?\s*(?:project|product|initiative|programme)\b/i);
+  if (projM) add(projM[1], "Projects");
+
+  // Countries/markets
+  const mktM = desc.match(/(\d+)\s*\+?\s*(?:countr|market|region|office|site)\b/i);
+  if (mktM) add(`${mktM[1]}+`, "Markets");
+
+  return results;
+}
+
+/* ─────────────────────────────────────────────
+   Compute headline figures from CV data
+───────────────────────────────────────────── */
+function computeStats(cv: CVData): { value: string; label: string }[] {
+  const stats: { value: string; label: string }[] = [];
+
+  // Years of experience — find earliest start year across all roles
+  const startYears: number[] = [];
+  for (const exp of cv.experience ?? []) {
+    const m = exp.duration?.match(/\b(19|20)\d{2}\b/);
+    if (m) startYears.push(parseInt(m[0]));
+  }
+  if (startYears.length > 0) {
+    const earliest = Math.min(...startYears);
+    const yrs = new Date().getFullYear() - earliest;
+    if (yrs >= 1 && yrs <= 50) stats.push({ value: `${yrs}+`, label: "Years Experience" });
+  }
+
+  // Unique companies
+  const companies = new Set((cv.experience ?? []).map(e => e.company).filter(Boolean));
+  if (companies.size >= 2) stats.push({ value: `${companies.size}`, label: "Companies" });
+
+  // Skills count
+  if ((cv.skills ?? []).length > 0)
+    stats.push({ value: `${cv.skills.length}+`, label: "Skills" });
+
+  // Certifications
+  if ((cv.certifications ?? []).length > 0)
+    stats.push({ value: `${cv.certifications!.length}`, label: "Certifications" });
+
+  return stats;
+}
+
+/* ─────────────────────────────────────────────
    Avatar — shows photo or initials fallback
 ───────────────────────────────────────────── */
 function Avatar({ photoUrl, name, size = "lg" }: { photoUrl?: string; name: string; size?: "sm" | "lg" }) {
@@ -215,14 +349,16 @@ function CVPage({ cv, onReset }: { cv: CVData; onReset: () => void }) {
       </section>
 
       {/* ── About ── */}
-      {cv.about && (() => {
-        const { intro, highlights, closing } = parseAbout(cv.about!);
+      {(() => {
+        const parsed = cv.about ? parseAbout(cv.about) : null;
+        const traits = deriveTraits(cv);
+        const stats = computeStats(cv);
         return (
           <section id="about" className="py-24 px-6 bg-zinc-950">
             <div className="max-w-5xl mx-auto">
 
               {/* ── Two-column: narrative + quick facts ── */}
-              <div className="grid md:grid-cols-3 gap-10 mb-14">
+              {cv.about && <div className="grid md:grid-cols-3 gap-10 mb-14">
 
                 {/* Left — narrative (2 cols) */}
                 <div className="md:col-span-2">
@@ -232,14 +368,14 @@ function CVPage({ cv, onReset }: { cv: CVData; onReset: () => void }) {
                   <h2 data-animate data-delay="100" className="text-4xl md:text-5xl font-semibold text-white tracking-tight mb-6 leading-tight">
                     Who I am.
                   </h2>
-                  {intro && (
+                  {parsed?.intro && (
                     <p data-animate data-delay="200" className="text-lg text-zinc-300 leading-relaxed max-w-2xl mb-5">
-                      {intro}
+                      {parsed.intro}
                     </p>
                   )}
-                  {closing && (
+                  {parsed?.closing && (
                     <p data-animate data-delay="300" className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
-                      {closing}
+                      {parsed.closing}
                     </p>
                   )}
                 </div>
@@ -309,7 +445,7 @@ function CVPage({ cv, onReset }: { cv: CVData; onReset: () => void }) {
                     )}
                   </div>
                 </div>
-              </div>
+              </div>}
 
               {/* ── Snapshot row: current role · education · personal ── */}
               {(cv.experience?.[0] || cv.education?.[0] || cv.personalInfo) && (
@@ -339,20 +475,28 @@ function CVPage({ cv, onReset }: { cv: CVData; onReset: () => void }) {
                 </div>
               )}
 
-              {/* ── Focus areas grid ── */}
-              {highlights.length > 0 && (
+              {/* ── Stats strip ── */}
+              {stats.length > 0 && (
+                <div data-animate data-delay="350" className={`grid gap-4 mb-10 ${stats.length <= 2 ? "grid-cols-2" : stats.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
+                  {stats.map((s, i) => (
+                    <div key={i} className="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-5 text-center">
+                      <p className="text-3xl md:text-4xl font-black text-white mb-1 tracking-tight">{s.value}</p>
+                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Focus area traits (derived from experience + personal info) ── */}
+              {traits.length > 0 && (
                 <div data-animate data-delay="400">
                   <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Focus areas</p>
-                  <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {highlights.map((h, i) => (
-                      <div key={i} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 transition-colors p-4">
-                        <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center mb-3">
-                          <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                          </svg>
-                        </div>
-                        <p className="text-sm text-zinc-300 font-semibold leading-relaxed">{h}</p>
-                      </div>
+                  <div className="flex flex-wrap gap-2.5">
+                    {traits.map((t, i) => (
+                      <span key={i}
+                        className="px-4 py-2 rounded-full border border-indigo-800/50 bg-indigo-950/50 text-indigo-200 text-sm font-bold hover:border-indigo-500/60 hover:bg-indigo-900/40 transition-colors cursor-default">
+                        {t}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -387,33 +531,69 @@ function CVPage({ cv, onReset }: { cv: CVData; onReset: () => void }) {
                     <div className={`absolute left-[14px] top-6 w-[22px] h-[22px] rounded-full border-2 border-black transition-all duration-300 ${
                       expandedExp === i ? "bg-indigo-500 ring-4 ring-indigo-500/30 scale-110" : "bg-zinc-700 ring-2 ring-zinc-800"
                     }`} />
-                    <button
-                      onClick={() => setExpandedExp(expandedExp === i ? null : i)}
-                      className="w-full text-left bg-zinc-900 hover:bg-zinc-800 rounded-2xl p-6 border border-zinc-800 hover:border-indigo-500/40 transition-all duration-300 group"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1">
-                            <h3 className="text-lg font-extrabold text-white group-hover:text-indigo-300 transition-colors">{exp.title}</h3>
-                            <span className="text-indigo-400 font-bold">{exp.company}</span>
+                    <div className={`bg-zinc-900 rounded-2xl border transition-all duration-300 ${expandedExp === i ? "border-indigo-500/40 shadow-xl shadow-indigo-950/30" : "border-zinc-800 hover:border-zinc-700"}`}>
+                      {/* Card header — always visible, click to toggle */}
+                      <button
+                        onClick={() => setExpandedExp(expandedExp === i ? null : i)}
+                        className="w-full text-left p-6 group"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1.5">
+                              <h3 className="text-lg font-extrabold text-white group-hover:text-indigo-300 transition-colors">{exp.title}</h3>
+                              <span className="text-indigo-400 font-bold text-sm">{exp.company}</span>
+                            </div>
+                            <p className="text-sm text-zinc-500 font-medium">
+                              {exp.duration}{exp.location ? ` · ${exp.location}` : ""}
+                            </p>
                           </div>
-                          <p className="text-sm text-zinc-500 font-medium">
-                            {exp.duration}{exp.location ? ` · ${exp.location}` : ""}
-                          </p>
+                          {exp.description && (
+                            <svg className={`w-5 h-5 shrink-0 mt-1 transition-transform duration-300 ${expandedExp === i ? "rotate-180 text-indigo-400" : "text-zinc-600"}`}
+                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                            </svg>
+                          )}
                         </div>
-                        {exp.description && (
-                          <svg className={`w-5 h-5 text-zinc-600 shrink-0 mt-1 transition-transform duration-300 ${expandedExp === i ? "rotate-180 text-indigo-400" : ""}`}
-                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                          </svg>
-                        )}
-                      </div>
+                      </button>
+
+                      {/* Expanded body */}
                       {exp.description && (
-                        <div className={`overflow-hidden transition-all duration-500 ${expandedExp === i ? "max-h-96 mt-4 opacity-100" : "max-h-0 opacity-0"}`}>
-                          <p className="text-zinc-400 leading-relaxed border-t border-zinc-800 pt-4 font-medium">{exp.description}</p>
+                        <div className={`overflow-hidden transition-all duration-500 ${expandedExp === i ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
+                          <div className="px-6 pb-6 border-t border-zinc-800/80">
+                            {/* Stats extracted from description */}
+                            {(() => {
+                              const s = extractStats(exp.description);
+                              if (s.length === 0) return null;
+                              return (
+                                <div className={`grid gap-3 pt-5 mb-5 ${s.length === 1 ? "grid-cols-1" : s.length === 2 ? "grid-cols-2" : s.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
+                                  {s.map((stat, j) => (
+                                    <div key={j} className="rounded-xl bg-indigo-950/50 border border-indigo-900/50 p-3 text-center">
+                                      <p className="text-2xl font-black text-white tracking-tight">{stat.value}</p>
+                                      <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-0.5">{stat.label}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+                            {/* Description body */}
+                            <div className={extractStats(exp.description).length > 0 ? "" : "pt-5"}>
+                              {exp.description.split(/\n|[•·]\s*/).map(s => s.trim()).filter(Boolean).length > 1 ? (
+                                <ul className="space-y-2">
+                                  {exp.description.split(/\n|[•·]\s*/).map(s => s.trim()).filter(Boolean).map((line, j) => (
+                                    <li key={j} className="flex gap-2.5 text-sm text-zinc-400 font-medium leading-relaxed">
+                                      <span className="text-indigo-500 mt-1 shrink-0">▸</span>
+                                      <span>{line}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-sm text-zinc-400 leading-relaxed font-medium">{exp.description}</p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
-                    </button>
+                    </div>
                   </div>
                 ))}
               </div>
